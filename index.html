@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPC TI LOCALIZA</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    /* Definição de Variáveis de Cor (Tema Claro) */
+    :root {
+      --bg-page: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --bg-container: #fff;
+      --text-primary: #333;
+      --text-secondary: #666;
+      --bg-result-item: #f8f9fa;
+      --border-result-item: #667eea;
+      --bg-badge-1: #667eea;
+      --bg-badge-2: #764ba2;
+      --bg-badge-3: #20c997; 
+      --color-badge-text: white;
+      --color-highlight: #667eea;
+      --color-subtitle: #666;
+      --bg-info-box: #f0f7ff;
+      --border-info-box: #667eea;
+      --color-info-text: #555;
+      --shadow-container: 0 20px 60px rgba(0, 0, 0, 0.3);
+      --bg-tab-active: #667eea;
+      --text-tab-active: #667eea;
+      --border-tab: #e0e0e0;
+      --color-stat-number: #667eea;
+      --blob-bg: linear-gradient(to right, #ff7eb3, #764ba2);
+    }
+
+    /* Definição de Variáveis de Cor (Tema Escuro) */
+    .dark-mode {
+      --bg-page: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      --bg-container: #2d2d2d;
+      --text-primary: #fff;
+      --text-secondary: #ccc;
+      --bg-result-item: #383838;
+      --border-result-item: #9fafff;
+      --bg-badge-1: #8fa0ff;
+      --bg-badge-2: #a08fff;
+      --bg-badge-3: #4fd1c5; 
+      --color-badge-text: #fff;
+      --color-highlight: #9fafff;
+      --color-subtitle: #aaa;
+      --bg-info-box: #3a3a3a;
+      --border-info-box: #9fafff;
+      --color-info-text: #eee;
+      --shadow-container: 0 20px 60px rgba(255, 255, 255, 0.1);
+      --bg-tab-active: #9fafff;
+      --text-tab-active: #fff;
+      --border-tab: #555;
+      --color-stat-number: #9fafff;
+      --blob-bg: linear-gradient(to right, #4fd1c5, #9fafff);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-page);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease;
+      overflow-x: hidden; 
+    }
+
+    #blob {
+      background: var(--blob-bg);
+      height: 300px;
+      aspect-ratio: 1;
+      position: fixed;
+      left: 0; top: 0;
+      margin-left: -150px; margin-top: -150px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+      z-index: 1; 
+      pointer-events: none; 
+    }
+
+    /* Tela de Carregamento (Loading) */
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-container);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .spinner {
+      border: 4px solid var(--border-tab);
+      border-top: 4px solid var(--color-highlight);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .container {
+      background: var(--bg-container);
+      border-radius: 12px;
+      box-shadow: var(--shadow-container);
+      width: 100%;
+      max-width: 800px; 
+      padding: 40px;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      z-index: 10; 
+      min-height: 400px;
+    }
+
+    /* Elementos ocultos enquanto carrega */
+    .app-content { display: none; }
+
+    .theme-switch-wrapper {
+      position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; align-items: center;
+    }
+
+    .theme-switch { display: inline-block; height: 34px; position: relative; width: 70px; }
+    .theme-switch input { display: none; }
+
+    .slider {
+      background-color: #cbd5e1; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+      bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0;
+      transition: .4s; border-radius: 34px;
+    }
+
+    .slider::after {
+      background: linear-gradient(135deg, #764ba2 0%, #ff7eb3 100%);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      bottom: 4px; content: ""; height: 26px; left: 4px; position: absolute;
+      transition: .4s; width: 26px; border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: #64748b; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4); }
+    input:checked + .slider::after { transform: translateX(36px); background: #2a2a2a; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-logo { width: 120px; height: auto; object-fit: contain; }
+    .header-content { text-align: center; flex: 1; padding: 0 20px; }
+    h1 { color: var(--text-primary); font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--color-subtitle); font-size: 14px; }
+    .header-icon { width: 160px; height: auto; object-fit: contain; }
+
+    .tabs { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--border-tab); }
+    .tab-btn {
+      padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: 14px;
+      color: var(--text-secondary); font-weight: 500; border-bottom: 3px solid transparent;
+      transition: all 0.3s; position: relative; bottom: -2px;
+    }
+    .tab-btn.active { color: var(--text-tab-active); border-bottom-color: var(--bg-tab-active); }
+    .tab-btn:hover { color: var(--color-highlight); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .search-box { margin-bottom: 20px; }
+    .search-box label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .search-box input {
+      width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; transition: border-color 0.3s; background-color: transparent; color: var(--text-primary);
+    }
+    .search-box input:focus { outline: none; border-color: var(--color-highlight); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    .search-box input::placeholder { color: var(--text-secondary); }
+
+    .results { margin-top: 20px; }
+    .result-item {
+      background: var(--bg-result-item); border-left: 4px solid var(--color-highlight);
+      padding: 16px; margin-bottom: 12px; border-radius: 6px; transition: all 0.3s;
+    }
+    .result-item:hover { background: var(--bg-container); transform: translateX(4px); }
+    .result-title { font-weight: 600; color: var(--text-primary); font-size: 15px; margin-bottom: 4px; }
+    
+    .badges-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .result-badge {
+      display: inline-block; background: var(--bg-badge-1); color: var(--color-badge-text);
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .result-badge.purple { background: var(--bg-badge-2); }
+    .result-badge.teal { background: var(--bg-badge-3); }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-tab); }
+    .stat { text-align: center; }
+    .stat-number { font-size: 24px; font-weight: 700; color: var(--color-stat-number); }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    .no-results { text-align: center; padding: 30px 20px; color: var(--text-secondary); }
+    .no-results p { margin-bottom: 8px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="blob"></div>
+
+  <div class="theme-switch-wrapper">
+    <label class="theme-switch" for="checkbox">
+      <input type="checkbox" id="checkbox" />
+      <div class="slider round"></div>
+    </label>
+  </div>
+
+  <div class="container">
+    
+    <div id="loading-screen">
+      <div class="spinner" id="loading-spinner"></div>
+      <div id="loading-message" style="color: var(--text-secondary); font-size: 14px; text-align: center;">Conectando à base de dados...</div>
+    </div>
+
+    <div class="app-content" id="app-content">
+      <header>
+        <img src="logo.png" alt="Logo DPC" class="header-logo">
+        <div class="header-content">
+          <h1>DPC TI LOCALIZA</h1>
+          <p class="subtitle">Encontre colaboradores e setores no escritório DPC.</p>
+        </div>
+        <img src="manutrans.png" alt="Mascote Localizadora" class="header-icon">
+      </header>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('usuario')">Usuário</button>
+        <button class="tab-btn" onclick="switchTab('setor')">Setor</button>
+      </div>
+
+      <div id="usuario" class="tab-content active">
+        <div class="search-box">
+          <label for="search-usuario">Quem você procura?</label>
+          <input type="text" id="search-usuario" placeholder="Ex: João Silva, Maria Santos..." oninput="filterUsuarios()" autocomplete="off">
+        </div>
+        <div class="results" id="results-usuario"></div>
+      </div>
+
+      <div id="setor" class="tab-content">
+        <div class="search-box">
+          <label for="search-setor">Qual setor você procura?</label>
+          <input type="text" id="search-setor" placeholder="Ex: TI, RH, Vendas, Financeiro..." oninput="filterSetores()" autocomplete="off">
+        </div>
+        <div class="results" id="results-setor"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-number" id="total-setores">0</div>
+          <div class="stat-label">Setores</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number" id="total-usuarios">0</div>
+          <div class="stat-label">Usuários</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== EFEITO BLOB MAGNÉTICO =====
+    const blob = document.getElementById("blob");
+    window.addEventListener("pointermove", event => { 
+      const { clientX, clientY } = event;
+      blob.animate({ transform: `translate(${clientX}px, ${clientY}px)` }, { duration: 3000, fill: "forwards" });
+    });
+
+    // ===== PERSISTÊNCIA DE TEMA =====
+    const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+    const currentTheme = localStorage.getItem('theme');
+    if (currentTheme) {
+        document.body.classList.add(currentTheme + '-mode');
+        if (currentTheme === 'dark') toggleSwitch.checked = true;
+    }
+    function switchTheme(e) {
+        if (e.target.checked) {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-mode');
+            document.body.classList.add('light-mode');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+    toggleSwitch.addEventListener('change', switchTheme, false);
+
+    // ==========================================
+    // ===== INTEGRAÇÃO COM GOOGLE SHEETS =======
+    // ==========================================
+
+    const URL_PLANILHA_SETORES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsvYbCIqqld0ag9hAXoE7R1zyxFqxHuy9C8OCwd96JpWIT6Sp8yw7belK7m9NADmVbeTGn3YfVwJKf/pub?gid=0&single=true&output=csv";
+    const URL_PLANILHA_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsvYbCIqqld0ag9hAXoE7R1zyxFqxHuy9C8OCwd96JpWIT6Sp8yw7belK7m9NADmVbeTGn3YfVwJKf/pub?gid=1229101806&single=true&output=csv";
+
+    let dados = { setores: [], usuarios: [] };
+
+    // FUNÇÃO AVANÇADA PARA LER A PLANILHA E TRATAR ERROS
+    async function fetchPlanilha(url) {
+      try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP_ERROR`);
+        }
+        
+        const textoCSV = await response.text();
+        
+        // Verifica se a resposta foi uma página de Login (HTML) em vez do arquivo CSV
+        if (textoCSV.trim().toLowerCase().startsWith("<!doctype html>") || textoCSV.trim().toLowerCase().startsWith("<html")) {
+           throw new Error("LOGIN_REQUIRED");
+        }
+
+        return new Promise((resolve, reject) => {
+          Papa.parse(textoCSV, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(resultados) {
+              resolve(resultados.data);
+            },
+            error: function(erro) {
+              reject(erro);
+            }
+          });
+        });
+      } catch (erro) {
+        throw erro;
+      }
+    }
+
+    async function carregarDados() {
+      try {
+        const [setoresResposta, usuariosResposta] = await Promise.all([
+          fetchPlanilha(URL_PLANILHA_SETORES),
+          fetchPlanilha(URL_PLANILHA_USUARIOS)
+        ]);
+
+        dados.setores = setoresResposta;
+        dados.usuarios = usuariosResposta;
+
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+
+        init();
+
+      } catch (erro) {
+        console.error("Erro ao carregar dados:", erro);
+        
+        document.getElementById('loading-spinner').style.display = 'none';
+        let mensagemCaixa = document.getElementById('loading-message');
+        
+        let textoErro = "Erro desconhecido ao conectar com a base de dados.";
+        
+        if (erro.message === "LOGIN_REQUIRED") {
+            textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>Para resolver: Vá na sua planilha em <i>Arquivo > Compartilhar > Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
+        } else if (erro.message === "HTTP_ERROR" || erro.message.includes("Failed to fetch")) {
+            textoErro = "<b>Erro de Conexão (CORS):</b> Seu navegador bloqueou o acesso.<br>Tente abrir este arquivo através de um servidor local (ex: extensão Live Server) ou verifique as permissões da rede.";
+        }
+
+        mensagemCaixa.innerHTML = `
+          <div style="background: #fee2e2; border: 2px solid #ef4444; border-radius: 8px; padding: 20px; max-width: 450px; text-align: center; margin-top: 10px;">
+            <p style="color: #991b1b; font-size: 14px; margin: 0; line-height: 1.6;">${textoErro}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Chama o carregamento logo que a página abre
+    window.addEventListener('load', carregarDados);
+
+    // ==========================================
+    // ===== LÓGICA DE BUSCA E RENDERIZAÇÃO =====
+    // ==========================================
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+      document.getElementById(tabName).classList.add('active');
+      if(event && event.target) {
+          event.target.classList.add('active');
+      }
+
+      if (tabName === 'setor') filterSetores();
+      else if (tabName === 'usuario') filterUsuarios();
+    }
+
+    function getSetorInfo(setorId) {
+      return dados.setores.find(s => String(s.id) === String(setorId));
+    }
+
+    function removerAcentos(texto) {
+      if(!texto) return "";
+      return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function filterSetores() {
+      const queryRaw = document.getElementById('search-setor').value.toLowerCase().trim();
+      const query = removerAcentos(queryRaw);
+
+      const resultados = query === '' 
+        ? dados.setores 
+        : dados.setores.filter(s => {
+            const nomeSemAcento = removerAcentos(s.nome.toLowerCase());
+            const gerenteSemAcento = removerAcentos(s.gerente.toLowerCase());
+            return nomeSemAcento.includes(query) || gerenteSemAcento.includes(query);
+          });
+      
+      renderSetores('results-setor', resultados);
+    }
+
+    function filterUsuarios() {
+      const queryRaw = document.getElementById('search-usuario').value.toLowerCase().trim();
+      const query = removerAcentos(queryRaw);
+
+      const resultados = query === ''
+        ? dados.usuarios
+        : dados.usuarios.filter(u => {
+            const nomeSemAcento = removerAcentos(u.nome.toLowerCase());
+            return nomeSemAcento.includes(query);
+          });
+      
+      renderUsuarios('results-usuario', resultados);
+    }
+
+    function renderSetores(containerId, setores) {
+      const container = document.getElementById(containerId);
+      
+      if (setores.length === 0) {
+        container.innerHTML = `
+          <div class="no-results">
+            <p>Nenhum setor encontrado</p>
+            <p style="font-size: 12px;">Tente buscar por outro nome</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = setores.map(setor => `
+        <div class="result-item">
+          <div class="result-title">${setor.nome}</div>
+          <div class="badges-container">
+            <span class="result-badge teal">Gerente: ${setor.gerente}</span>
+            <span class="result-badge">${setor.andar}º Andar</span>
+            <span class="result-badge purple">${setor.localizacao}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderUsuarios(containerId, usuarios) {
+      const container = document.getElementById(containerId);
+      
+      if (usuarios.length === 0) {
+        container.innerHTML = `
+          <div class="no-results">
+            <p>Nenhum colaborador encontrado</p>
+            <p style="font-size: 12px;">Tente buscar por outro nome</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = usuarios.map(usuario => {
+        const setor = getSetorInfo(usuario.setor_id);
+        return `
+          <div class="result-item">
+            <div class="result-title">${usuario.nome}</div>
+            <div class="badges-container">
+              <span class="result-badge teal">Setor: ${setor ? setor.nome : 'Desconhecido'}</span>
+              ${setor ? `
+                <span class="result-badge">${setor.andar}º Andar</span>
+                <span class="result-badge purple">${setor.localizacao}</span>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function init() {
+      document.getElementById('total-setores').textContent = dados.setores.length;
+      document.getElementById('total-usuarios').textContent = dados.usuarios.length;
+      switchTab('usuario');
+    }
+  </script>
+</body>
+</html>
