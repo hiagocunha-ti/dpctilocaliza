@@ -166,13 +166,31 @@
     input:checked + .slider { background-color: #64748b; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4); }
     input:checked + .slider::after { transform: translateX(36px); background: #2a2a2a; }
 
+    /* =========================================
+       CABEÇALHO (HEADER)
+       ========================================= */
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .header-logo { width: 120px; height: auto; object-fit: contain; }
+    
+    .header-logo { 
+      width: 180px; /* Aumentado de 120px */
+      height: auto; 
+      object-fit: contain; 
+    }
+    
     .header-content { text-align: center; flex: 1; padding: 0 20px; }
-    h1 { color: var(--text-primary); font-size: 28px; margin-bottom: 8px; }
+    
+    h1 { 
+      color: var(--text-primary); 
+      font-size: 36px; /* Aumentado de 28px */
+      margin-bottom: 8px; 
+    }
+    
     .subtitle { color: var(--color-subtitle); font-size: 14px; }
     .header-icon { width: 160px; height: auto; object-fit: contain; }
 
+    /* =========================================
+       RESTANTE DO LAYOUT
+       ========================================= */
     .tabs { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--border-tab); }
     .tab-btn {
       padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: 14px;
@@ -494,7 +512,7 @@
         let textoErro = "Erro desconhecido ao conectar com a base de dados.";
         
         if (erro.message === "LOGIN_REQUIRED") {
-            textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>Para resolver: Vá na sua planilha em <i>Arquivo > Compartilhar > Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
+            textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>To resolve: Vá na sua planilha em <i>Arquivo > Compartilhar > Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
         } else if (erro.message === "HTTP_ERROR" || erro.message.includes("Failed to fetch")) {
             textoErro = "<b>Erro de Conexão (CORS):</b> Seu navegador bloqueou o acesso.<br>Tente abrir este arquivo através de um servidor local (ex: extensão Live Server) ou verifique as permissões da rede.";
         }
@@ -514,7 +532,7 @@
     // ==========================================
 
     function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach= (el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
       document.getElementById(tabName).classList.add('active');
