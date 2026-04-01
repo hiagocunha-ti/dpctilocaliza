@@ -19,6 +19,7 @@
       --bg-badge-1: #667eea;
       --bg-badge-2: #764ba2;
       --bg-badge-3: #20c997; 
+      --bg-badge-4: #ed8936; /* Laranja para o Gerente */
       --color-badge-text: white;
       --color-highlight: #667eea;
       --color-subtitle: #666;
@@ -44,6 +45,7 @@
       --bg-badge-1: #8fa0ff;
       --bg-badge-2: #a08fff;
       --bg-badge-3: #4fd1c5; 
+      --bg-badge-4: #f6ad55; /* Laranja claro para o Gerente */
       --color-badge-text: #fff;
       --color-highlight: #9fafff;
       --color-subtitle: #aaa;
@@ -180,7 +182,7 @@
     .header-content { text-align: center; flex: 1; padding: 0 20px; }
     
     h1 { 
-      color: var(--text-primary); 
+      color: var(--text-primary);
       font-size: 36px;
       margin-bottom: 8px; 
     }
@@ -228,6 +230,7 @@
     }
     .result-badge.purple { background: var(--bg-badge-2); }
     .result-badge.teal { background: var(--bg-badge-3); }
+    .result-badge.orange { background: var(--bg-badge-4); }
 
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-tab); }
     .stat { text-align: center; }
@@ -266,7 +269,6 @@
       </header>
 
       <div class="tabs">
-        <!-- CORREÇÃO #2: event passado explicitamente como argumento para switchTab -->
         <button class="tab-btn active" onclick="switchTab('usuario', event)">Usuário</button>
         <button class="tab-btn" onclick="switchTab('setor', event)">Setor</button>
       </div>
@@ -307,10 +309,10 @@
     
     // Objeto global do mouse
     let mouse = { x: null, y: null, radius: 150 };
-    
+
     // 1. Blob Magnético
     const blob = document.getElementById("blob");
-    
+
     window.addEventListener("pointermove", event => { 
       mouse.x = event.x;
       mouse.y = event.y;
@@ -369,14 +371,14 @@
       particlesArray = [];
       let numberOfParticles = (canvas.height * canvas.width) / 15000;
       if(numberOfParticles > 100) numberOfParticles = 100;
-      
+
       for (let i = 0; i < numberOfParticles; i++) {
         let size = (Math.random() * 2) + 1;
         let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
         let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
         let directionX = (Math.random() * 2) - 1;
         let directionY = (Math.random() * 2) - 1;
-        
+
         particlesArray.push(new Particle(x, y, directionX, directionY, size));
       }
     }
@@ -389,7 +391,7 @@
         for (let b = a; b < particlesArray.length; b++) {
           let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + 
                          ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-          
+
           // Conexão entre partículas próximas
           if (distance < (canvas.width / 7) * (canvas.height / 7)) {
             opacityValue = 1 - (distance / 20000);
@@ -407,7 +409,7 @@
           let dx = mouse.x - particlesArray[a].x;
           let dy = mouse.y - particlesArray[a].y;
           let distanceMouse = Math.sqrt(dx * dx + dy * dy);
-          
+
           if (distanceMouse < mouse.radius) {
             ctx.strokeStyle = `rgba(${colorRGB}, ${1 - (distanceMouse/mouse.radius)})`;
             ctx.lineWidth = 1.5;
@@ -471,15 +473,13 @@
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP_ERROR`);
 
-        // CORREÇÃO #4: verificação de Content-Type é mais robusta que checar o conteúdo do texto
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('text/html')) {
           throw new Error("LOGIN_REQUIRED");
         }
 
         const textoCSV = await response.text();
-
-        // Guarda secundária: caso o servidor não envie o Content-Type correto
+        
         const inicio = textoCSV.trim().toLowerCase();
         if (inicio.startsWith("<!doctype") || inicio.startsWith("<html")) {
           throw new Error("LOGIN_REQUIRED");
@@ -519,9 +519,8 @@
         let mensagemCaixa = document.getElementById('loading-message');
         
         let textoErro = "Erro desconhecido ao conectar com a base de dados.";
-        
+
         if (erro.message === "LOGIN_REQUIRED") {
-            // CORREÇÃO #7: texto de erro padronizado em português
             textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>Para resolver: Vá na sua planilha em <i>Arquivo &gt; Compartilhar &gt; Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
         } else if (erro.message === "HTTP_ERROR" || erro.message.includes("Failed to fetch")) {
             textoErro = "<b>Erro de Conexão (CORS):</b> Seu navegador bloqueou o acesso.<br>Tente abrir este arquivo através de um servidor local (ex: extensão Live Server) ou verifique as permissões da rede.";
@@ -541,8 +540,6 @@
     // ===== LÓGICA DE BUSCA E RENDERIZAÇÃO =====
     // ==========================================
 
-    // CORREÇÃO #1: forEach corrigido (era forEach= com sinal de igual)
-    // CORREÇÃO #2: evento recebido como parâmetro explícito em vez de window.event
     function switchTab(tabName, evt) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -565,14 +562,12 @@
       return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
     }
 
-    // CORREÇÃO #3: função de escape para prevenir XSS no innerHTML
     function escapeHtml(str) {
       const div = document.createElement('div');
       div.textContent = str != null ? String(str) : '';
       return div.innerHTML;
     }
 
-    // CORREÇÃO #6: debounce para evitar re-renderização excessiva a cada tecla
     function debounce(fn, delay) {
       let timer;
       return function(...args) {
@@ -588,7 +583,6 @@
       const resultados = query === '' 
         ? dados.setores 
         : dados.setores.filter(s => {
-            // CORREÇÃO #5: guarda contra campos nulos/undefined antes de .toLowerCase()
             const nomeSemAcento = removerAcentos((s.nome || '').toLowerCase());
             const gerenteSemAcento = removerAcentos((s.gerente || '').toLowerCase());
             return nomeSemAcento.includes(query) || gerenteSemAcento.includes(query);
@@ -604,7 +598,6 @@
       const resultados = query === ''
         ? dados.usuarios
         : dados.usuarios.filter(u => {
-            // CORREÇÃO #5: guarda contra campos nulos/undefined antes de .toLowerCase()
             const nomeSemAcento = removerAcentos((u.nome || '').toLowerCase());
             return nomeSemAcento.includes(query);
           });
@@ -612,7 +605,6 @@
       renderUsuarios('results-usuario', resultados);
     }
 
-    // Versões com debounce vinculadas aos inputs no HTML
     const filterSetoresDebounced = debounce(filterSetores, 200);
     const filterUsuariosDebounced = debounce(filterUsuarios, 200);
 
@@ -629,7 +621,6 @@
         return;
       }
 
-      // CORREÇÃO #3: dados sanitizados com escapeHtml antes de inserir no innerHTML
       container.innerHTML = setores.map(setor => `
         <div class="result-item">
           <div class="result-title">${escapeHtml(setor.nome)}</div>
@@ -655,7 +646,6 @@
         return;
       }
 
-      // CORREÇÃO #3: dados sanitizados com escapeHtml antes de inserir no innerHTML
       container.innerHTML = usuarios.map(usuario => {
         const setor = getSetorInfo(usuario.setor_id);
         return `
@@ -664,6 +654,7 @@
             <div class="badges-container">
               <span class="result-badge teal">Setor: ${setor ? escapeHtml(setor.nome) : 'Desconhecido'}</span>
               ${setor ? `
+                <span class="result-badge orange">Gerente: ${escapeHtml(setor.gerente)}</span>
                 <span class="result-badge">${escapeHtml(setor.andar)}º Andar</span>
                 <span class="result-badge purple">${escapeHtml(setor.localizacao)}</span>
               ` : ''}
@@ -673,8 +664,6 @@
       }).join('');
     }
 
-    // CORREÇÃO #8: init() chama filterUsuarios() diretamente em vez de switchTab(),
-    // evitando re-renderização redundante de uma aba que já está ativa no HTML
     function init() {
       document.getElementById('total-setores').textContent = dados.setores.length;
       document.getElementById('total-usuarios').textContent = dados.usuarios.length;
