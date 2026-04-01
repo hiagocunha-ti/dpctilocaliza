@@ -172,7 +172,7 @@
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     
     .header-logo { 
-      width: 180px; /* Aumentado de 120px */
+      width: 180px;
       height: auto; 
       object-fit: contain; 
     }
@@ -181,7 +181,7 @@
     
     h1 { 
       color: var(--text-primary); 
-      font-size: 36px; /* Aumentado de 28px */
+      font-size: 36px;
       margin-bottom: 8px; 
     }
     
@@ -266,14 +266,15 @@
       </header>
 
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('usuario')">Usuário</button>
-        <button class="tab-btn" onclick="switchTab('setor')">Setor</button>
+        <!-- CORREÇÃO #2: event passado explicitamente como argumento para switchTab -->
+        <button class="tab-btn active" onclick="switchTab('usuario', event)">Usuário</button>
+        <button class="tab-btn" onclick="switchTab('setor', event)">Setor</button>
       </div>
 
       <div id="usuario" class="tab-content active">
         <div class="search-box">
           <label for="search-usuario">Quem você procura?</label>
-          <input type="text" id="search-usuario" placeholder="Ex: João Silva, Maria Santos..." oninput="filterUsuarios()" autocomplete="off">
+          <input type="text" id="search-usuario" placeholder="Ex: João Silva, Maria Santos..." oninput="filterUsuariosDebounced()" autocomplete="off">
         </div>
         <div class="results" id="results-usuario"></div>
       </div>
@@ -281,7 +282,7 @@
       <div id="setor" class="tab-content">
         <div class="search-box">
           <label for="search-setor">Qual setor você procura?</label>
-          <input type="text" id="search-setor" placeholder="Ex: TI, RH, Vendas, Financeiro..." oninput="filterSetores()" autocomplete="off">
+          <input type="text" id="search-setor" placeholder="Ex: TI, RH, Vendas, Financeiro..." oninput="filterSetoresDebounced()" autocomplete="off">
         </div>
         <div class="results" id="results-setor"></div>
       </div>
@@ -360,15 +361,14 @@
         this.x += this.directionX;
         this.y += this.directionY;
         
-        // Interação com o mouse (Repulsão leve opcional - removida para focar na conexão magnética)
         this.draw();
       }
     }
 
     function initNetwork() {
       particlesArray = [];
-      let numberOfParticles = (canvas.height * canvas.width) / 15000; // Ajusta quantidade por tela
-      if(numberOfParticles > 100) numberOfParticles = 100; // Limite para não travar
+      let numberOfParticles = (canvas.height * canvas.width) / 15000;
+      if(numberOfParticles > 100) numberOfParticles = 100;
       
       for (let i = 0; i < numberOfParticles; i++) {
         let size = (Math.random() * 2) + 1;
@@ -470,10 +470,19 @@
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP_ERROR`);
-        
+
+        // CORREÇÃO #4: verificação de Content-Type é mais robusta que checar o conteúdo do texto
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          throw new Error("LOGIN_REQUIRED");
+        }
+
         const textoCSV = await response.text();
-        if (textoCSV.trim().toLowerCase().startsWith("<!doctype html>") || textoCSV.trim().toLowerCase().startsWith("<html")) {
-           throw new Error("LOGIN_REQUIRED");
+
+        // Guarda secundária: caso o servidor não envie o Content-Type correto
+        const inicio = textoCSV.trim().toLowerCase();
+        if (inicio.startsWith("<!doctype") || inicio.startsWith("<html")) {
+          throw new Error("LOGIN_REQUIRED");
         }
 
         return new Promise((resolve, reject) => {
@@ -512,7 +521,8 @@
         let textoErro = "Erro desconhecido ao conectar com a base de dados.";
         
         if (erro.message === "LOGIN_REQUIRED") {
-            textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>To resolve: Vá na sua planilha em <i>Arquivo > Compartilhar > Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
+            // CORREÇÃO #7: texto de erro padronizado em português
+            textoErro = "<b>Acesso Bloqueado pelo Google:</b> A planilha está exigindo login corporativo.<br><br>Para resolver: Vá na sua planilha em <i>Arquivo &gt; Compartilhar &gt; Publicar na Web</i>, abra <i>'Conteúdo e configurações'</i> e <b>desmarque</b> a opção de restringir acesso aos usuários da DPC.";
         } else if (erro.message === "HTTP_ERROR" || erro.message.includes("Failed to fetch")) {
             textoErro = "<b>Erro de Conexão (CORS):</b> Seu navegador bloqueou o acesso.<br>Tente abrir este arquivo através de um servidor local (ex: extensão Live Server) ou verifique as permissões da rede.";
         }
@@ -531,13 +541,15 @@
     // ===== LÓGICA DE BUSCA E RENDERIZAÇÃO =====
     // ==========================================
 
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach= (el => el.classList.remove('active'));
+    // CORREÇÃO #1: forEach corrigido (era forEach= com sinal de igual)
+    // CORREÇÃO #2: evento recebido como parâmetro explícito em vez de window.event
+    function switchTab(tabName, evt) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
       document.getElementById(tabName).classList.add('active');
-      if(event && event.target) {
-          event.target.classList.add('active');
+      if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
       }
 
       if (tabName === 'setor') filterSetores();
@@ -553,6 +565,22 @@
       return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
     }
 
+    // CORREÇÃO #3: função de escape para prevenir XSS no innerHTML
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str != null ? String(str) : '';
+      return div.innerHTML;
+    }
+
+    // CORREÇÃO #6: debounce para evitar re-renderização excessiva a cada tecla
+    function debounce(fn, delay) {
+      let timer;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay || 200);
+      };
+    }
+
     function filterSetores() {
       const queryRaw = document.getElementById('search-setor').value.toLowerCase().trim();
       const query = removerAcentos(queryRaw);
@@ -560,8 +588,9 @@
       const resultados = query === '' 
         ? dados.setores 
         : dados.setores.filter(s => {
-            const nomeSemAcento = removerAcentos(s.nome.toLowerCase());
-            const gerenteSemAcento = removerAcentos(s.gerente.toLowerCase());
+            // CORREÇÃO #5: guarda contra campos nulos/undefined antes de .toLowerCase()
+            const nomeSemAcento = removerAcentos((s.nome || '').toLowerCase());
+            const gerenteSemAcento = removerAcentos((s.gerente || '').toLowerCase());
             return nomeSemAcento.includes(query) || gerenteSemAcento.includes(query);
           });
       
@@ -575,12 +604,17 @@
       const resultados = query === ''
         ? dados.usuarios
         : dados.usuarios.filter(u => {
-            const nomeSemAcento = removerAcentos(u.nome.toLowerCase());
+            // CORREÇÃO #5: guarda contra campos nulos/undefined antes de .toLowerCase()
+            const nomeSemAcento = removerAcentos((u.nome || '').toLowerCase());
             return nomeSemAcento.includes(query);
           });
       
       renderUsuarios('results-usuario', resultados);
     }
+
+    // Versões com debounce vinculadas aos inputs no HTML
+    const filterSetoresDebounced = debounce(filterSetores, 200);
+    const filterUsuariosDebounced = debounce(filterUsuarios, 200);
 
     function renderSetores(containerId, setores) {
       const container = document.getElementById(containerId);
@@ -595,13 +629,14 @@
         return;
       }
 
+      // CORREÇÃO #3: dados sanitizados com escapeHtml antes de inserir no innerHTML
       container.innerHTML = setores.map(setor => `
         <div class="result-item">
-          <div class="result-title">${setor.nome}</div>
+          <div class="result-title">${escapeHtml(setor.nome)}</div>
           <div class="badges-container">
-            <span class="result-badge teal">Gerente: ${setor.gerente}</span>
-            <span class="result-badge">${setor.andar}º Andar</span>
-            <span class="result-badge purple">${setor.localizacao}</span>
+            <span class="result-badge teal">Gerente: ${escapeHtml(setor.gerente)}</span>
+            <span class="result-badge">${escapeHtml(setor.andar)}º Andar</span>
+            <span class="result-badge purple">${escapeHtml(setor.localizacao)}</span>
           </div>
         </div>
       `).join('');
@@ -620,16 +655,17 @@
         return;
       }
 
+      // CORREÇÃO #3: dados sanitizados com escapeHtml antes de inserir no innerHTML
       container.innerHTML = usuarios.map(usuario => {
         const setor = getSetorInfo(usuario.setor_id);
         return `
           <div class="result-item">
-            <div class="result-title">${usuario.nome}</div>
+            <div class="result-title">${escapeHtml(usuario.nome)}</div>
             <div class="badges-container">
-              <span class="result-badge teal">Setor: ${setor ? setor.nome : 'Desconhecido'}</span>
+              <span class="result-badge teal">Setor: ${setor ? escapeHtml(setor.nome) : 'Desconhecido'}</span>
               ${setor ? `
-                <span class="result-badge">${setor.andar}º Andar</span>
-                <span class="result-badge purple">${setor.localizacao}</span>
+                <span class="result-badge">${escapeHtml(setor.andar)}º Andar</span>
+                <span class="result-badge purple">${escapeHtml(setor.localizacao)}</span>
               ` : ''}
             </div>
           </div>
@@ -637,10 +673,12 @@
       }).join('');
     }
 
+    // CORREÇÃO #8: init() chama filterUsuarios() diretamente em vez de switchTab(),
+    // evitando re-renderização redundante de uma aba que já está ativa no HTML
     function init() {
       document.getElementById('total-setores').textContent = dados.setores.length;
       document.getElementById('total-usuarios').textContent = dados.usuarios.length;
-      switchTab('usuario');
+      filterUsuarios();
     }
   </script>
 </body>
