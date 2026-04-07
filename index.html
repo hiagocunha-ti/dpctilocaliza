@@ -84,8 +84,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      z-index: 0; /* Fica no fundo, atrás do Blob */
-      pointer-events: none; /* Para não interferir nos cliques */
+      z-index: 0; 
+      pointer-events: none; 
     }
 
     /* =========================================
@@ -101,7 +101,7 @@
       border-radius: 50%;
       filter: blur(80px);
       opacity: 0.6;
-      z-index: 1; /* Fica acima da rede, mas atrás do container */
+      z-index: 1; 
       pointer-events: none; 
     }
 
@@ -172,21 +172,9 @@
        CABEÇALHO (HEADER)
        ========================================= */
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    
-    .header-logo { 
-      width: 180px;
-      height: auto; 
-      object-fit: contain; 
-    }
-    
+    .header-logo { width: 180px; height: auto; object-fit: contain; }
     .header-content { text-align: center; flex: 1; padding: 0 20px; }
-    
-    h1 { 
-      color: var(--text-primary);
-      font-size: 36px;
-      margin-bottom: 8px; 
-    }
-    
+    h1 { color: var(--text-primary); font-size: 36px; margin-bottom: 8px; }
     .subtitle { color: var(--color-subtitle); font-size: 14px; }
     .header-icon { width: 160px; height: auto; object-fit: contain; }
 
@@ -231,6 +219,60 @@
     .result-badge.purple { background: var(--bg-badge-2); }
     .result-badge.teal { background: var(--bg-badge-3); }
     .result-badge.orange { background: var(--bg-badge-4); }
+
+    /* =========================================
+       NOVAS CLASSES: DROPDOWN DE USUÁRIOS (ACORDEÃO)
+       ========================================= */
+    .sector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .toggle-users-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      transition: transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .toggle-users-btn.open {
+      transform: rotate(180deg);
+      color: var(--color-highlight);
+    }
+
+    .sector-users-list {
+      display: none;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-tab);
+      animation: slideDown 0.3s ease;
+    }
+
+    .sector-users-list.show {
+      display: block;
+    }
+
+    .sector-user-item {
+      font-size: 13px;
+      color: var(--text-primary);
+      padding: 6px 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .sector-user-item::before {
+      content: '•';
+      color: var(--color-highlight);
+      font-weight: bold;
+      margin-right: 8px;
+      font-size: 18px;
+    }
 
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-tab); }
     .stat { text-align: center; }
@@ -307,21 +349,15 @@
     // ===== EFEITO BLOB E CANVAS NETWORK =======
     // ==========================================
     
-    // Objeto global do mouse
     let mouse = { x: null, y: null, radius: 150 };
-
-    // 1. Blob Magnético
     const blob = document.getElementById("blob");
 
     window.addEventListener("pointermove", event => { 
       mouse.x = event.x;
       mouse.y = event.y;
-      
-      // Animação suave do Blob
       blob.animate({ transform: `translate(${event.clientX}px, ${event.clientY}px)` }, { duration: 3000, fill: "forwards" });
     });
 
-    // 2. Efeito Canvas Network (Rede Neural)
     const canvas = document.getElementById('network-canvas');
     const ctx = canvas.getContext('2d');
     let particlesArray;
@@ -333,7 +369,6 @@
     window.addEventListener('resize', setCanvasSize);
     setCanvasSize();
 
-    // Define a cor das linhas com base no tema (Claro/Escuro)
     function getNetworkColor() {
       return document.body.classList.contains('dark-mode') ? '159, 175, 255' : '255, 255, 255'; 
     }
@@ -355,14 +390,10 @@
       }
       
       update() {
-        // Verifica se a partícula bateu nas bordas
         if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
         if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
-
-        // Move a partícula
         this.x += this.directionX;
         this.y += this.directionY;
-        
         this.draw();
       }
     }
@@ -378,7 +409,6 @@
         let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
         let directionX = (Math.random() * 2) - 1;
         let directionY = (Math.random() * 2) - 1;
-
         particlesArray.push(new Particle(x, y, directionX, directionY, size));
       }
     }
@@ -392,7 +422,6 @@
           let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + 
                          ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
 
-          // Conexão entre partículas próximas
           if (distance < (canvas.width / 7) * (canvas.height / 7)) {
             opacityValue = 1 - (distance / 20000);
             ctx.strokeStyle = `rgba(${colorRGB}, ${opacityValue})`;
@@ -404,7 +433,6 @@
           }
         }
         
-        // Conexão magnética com o Mouse
         if(mouse.x && mouse.y) {
           let dx = mouse.x - particlesArray[a].x;
           let dy = mouse.y - particlesArray[a].y;
@@ -425,7 +453,6 @@
     function animateNetwork() {
       requestAnimationFrame(animateNetwork);
       ctx.clearRect(0, 0, innerWidth, innerHeight);
-      
       for (let i = 0; i < particlesArray.length; i++) {
         particlesArray[i].update();
       }
@@ -479,7 +506,6 @@
         }
 
         const textoCSV = await response.text();
-        
         const inicio = textoCSV.trim().toLowerCase();
         if (inicio.startsWith("<!doctype") || inicio.startsWith("<html")) {
           throw new Error("LOGIN_REQUIRED");
@@ -553,6 +579,19 @@
       else if (tabName === 'usuario') filterUsuarios();
     }
 
+    // NOVA FUNÇÃO: Alterna a visibilidade da lista de usuários de um setor
+    window.toggleUsers = function(listId, arrowId) {
+      const list = document.getElementById(listId);
+      const arrow = document.getElementById(arrowId);
+      if (list.classList.contains('show')) {
+        list.classList.remove('show');
+        arrow.classList.remove('open');
+      } else {
+        list.classList.add('show');
+        arrow.classList.add('open');
+      }
+    };
+
     function getSetorInfo(setorId) {
       return dados.setores.find(s => String(s.id) === String(setorId));
     }
@@ -621,16 +660,42 @@
         return;
       }
 
-      container.innerHTML = setores.map(setor => `
-        <div class="result-item">
-          <div class="result-title">${escapeHtml(setor.nome)}</div>
-          <div class="badges-container">
-            <span class="result-badge teal">Gerente: ${escapeHtml(setor.gerente)}</span>
-            <span class="result-badge">${escapeHtml(setor.andar)}º Andar</span>
-            <span class="result-badge purple">${escapeHtml(setor.localizacao)}</span>
+      container.innerHTML = setores.map((setor, index) => {
+        // Busca os usuários deste setor específico
+        const usuariosDoSetor = dados.usuarios.filter(u => String(u.setor_id) === String(setor.id));
+        
+        // Organiza a lista de nomes em ordem alfabética para ficar mais bonito
+        usuariosDoSetor.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+        const usersHtml = usuariosDoSetor.length > 0 
+          ? usuariosDoSetor.map(u => `<div class="sector-user-item">${escapeHtml(u.nome)}</div>`).join('')
+          : '<div class="sector-user-item" style="color: var(--text-secondary);">Nenhum colaborador cadastrado.</div>';
+
+        return `
+          <div class="result-item">
+            <div class="sector-header" onclick="toggleUsers('users-${index}', 'arrow-${index}')">
+              <div>
+                <div class="result-title">${escapeHtml(setor.nome)}</div>
+                <div class="badges-container">
+                  <span class="result-badge teal">Gerente: ${escapeHtml(setor.gerente)}</span>
+                  <span class="result-badge">${escapeHtml(setor.andar)}º Andar</span>
+                  <span class="result-badge purple">${escapeHtml(setor.localizacao)}</span>
+                </div>
+              </div>
+              <button class="toggle-users-btn" id="arrow-${index}">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+            </div>
+            
+            <div class="sector-users-list" id="users-${index}">
+              <div style="font-size: 11px; font-weight: bold; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Colaboradores do Setor (${usuariosDoSetor.length})
+              </div>
+              ${usersHtml}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function renderUsuarios(containerId, usuarios) {
